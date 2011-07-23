@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+	<string id="30000">SF Videoportal</string>
+
+    <!-- Category strings -->
+    <string id="30100">Main settings</string>
+        <string id="30110">Login</string>
+        <string id="30111">Password</string>
+</strings>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.teleboy"
+       name="Teleboy Live-TV"
+       version="0.1.0"
+       provider-name="Andreas Wetzel [xbmc@mindmade.org]">
+  <requires>
+    <import addon="xbmc.python" version="1.0" />
+	<import addon="script.module.beautifulsoup" version="3.0.8" />
+	<import addon="script.module.mindmadetools" version="0.1.0" />
+  </requires>
+  <extension point="xbmc.python.pluginsource"
+            library="teleboy.py">
+        <provides>video</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <platform>all</platform>
+    <summary>Live-TV provided by teleboy.ch</summary>
+    <description>
+        to be written first...
+    </description>
+  </extension>
+</addon>
