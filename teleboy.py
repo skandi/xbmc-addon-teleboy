@@ -100,13 +100,16 @@ def ensure_cookie():
     hdrs = { "User-Agent": "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.2.17) Gecko/20110422 Ubuntu/10.04 (lucid) Firefox/3.6.17" }
     req = urllib2.Request( url, urllib.urlencode( args), hdrs)
     r = urllib2.urlopen( req)
-    ans = r.read()
-    if "Falsche Eingaben" in ans:
+    reply = r.read()
+    if "Falsche Eingaben" in reply or "Login f&uuml;r Member" in reply:
         return False
     return True
         
 #        cookie.save( COOKIE_FILE, ignore_discard=True)
     
+def get_image( station):
+    return URL_BASE + "/img/station/%d/logo_s_big1.gif" % int(station)
+
 def get_streamparams( station):
     html = fetchHttp( URL_BASE + "/tv/player/player.php?station_id=" + station)
     cid, cid2 = re.compile( "curChannel = '([0-9]*)'.*curDualChannel = '([0-9]*)'").findall( html)[0]
@@ -144,6 +147,7 @@ def parameters_string_to_dict( parameters):
 def addDirectoryItem( name, params={}, image="", total=0):
     '''Add a list item to the XBMC UI.'''
     img = "DefaultVideo.png"
+    if image != "": img = image
 
     name = htmldecode( name)
     li = xbmcgui.ListItem( name, iconImage=img, thumbnailImage=image)
@@ -171,12 +175,13 @@ def show_main():
             name = htmldecode( tr.find( "a", "mob24icon-black")["href"].split("/")[3])
             show = htmldecode( tr.find( "a").text)
             span = tr.find( "span", "show-description")
+            desc = None
             if span:
                 desc = span.text[5:]
-            else:
-                desc = "nodesc"
-            title = name + ": " + show + " (+" + desc + ")"
-            addDirectoryItem( title, { PARAMETER_KEY_STATION: str(id), PARAMETER_KEY_MODE: MODE_PLAY, PARAMETER_KEY_TITLE: title } )
+            img = get_image( id)
+            title = name + ": " + show
+            if desc: title += " (+" + desc + ")"
+            addDirectoryItem( title, { PARAMETER_KEY_STATION: str(id), PARAMETER_KEY_MODE: MODE_PLAY, PARAMETER_KEY_TITLE: title }, img)
 #        print "%3d  %-10s %s (+%s)" % (id, name, show, desc)
     xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=True)
 
@@ -196,8 +201,9 @@ elif mode == MODE_PLAY:
 
     station = params[PARAMETER_KEY_STATION]
     url = get_streamparams( station)
+    img = get_image( station)
 
-    li = xbmcgui.ListItem( params[PARAMETER_KEY_TITLE])
+    li = xbmcgui.ListItem( params[PARAMETER_KEY_TITLE], iconImage=img, thumbnailImage=img)
     li.setProperty( "IsPlayable", "true")
     li.setProperty( "Video", "true")
 
