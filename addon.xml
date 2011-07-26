@@ -16,7 +16,13 @@
     <platform>all</platform>
     <summary>Live-TV provided by teleboy.ch</summary>
     <description>
-        to be written first...
+Steps to be done before using the teleboy addon:
+--------------------------------------------------------------------------------
+> open &quot;http://www.teleboy.ch&quot; in your browser
+> sign up (free) and login
+> create your preferred channel list
+> enter your login and password in the addon settings
+> enjoy live television!
     </description>
   </extension>
 </addon>
