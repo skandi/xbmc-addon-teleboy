@@ -23,6 +23,11 @@ Steps to be done before using the teleboy addon:
 > create your preferred channel list
 > enter your login and password in the addon settings
 > enjoy live television!
+
+Credit:
+A big thank you goes to "reduzent", the author of the watchteleboy
+shell script, who did a good work in reverse engineering the
+teleboy.ch specialities.
     </description>
   </extension>
 </addon>
