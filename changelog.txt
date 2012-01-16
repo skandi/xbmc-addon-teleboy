@@ -1,3 +1,8 @@
+version 0.2.0
+
+  * reworked scraper for new teleboy player 1.2.2
+  * save/reuse login cookie
+
 version 0.1.0
 
   * initial release
