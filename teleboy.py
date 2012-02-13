@@ -135,13 +135,12 @@ def show_main():
             channel = htmldecode( tr.find( "a")["href"].split("/")[3])
             show = htmldecode( tr.find( "td", "show").find( "a").text)
             cid, cid2 = tr.find( "a", "playIcon")["data-play-live"].split("/")
-            span = tr.find( "span", "show-description")
-            desc = None
-            if span:
-                desc = span.text[5:]
             img = get_stationLogo( id)
             title = label = channel + ": " + show
-            if desc: label = label + " (+" + desc + ")"
+            p = tr.find( "p", "listing_info");
+            if p:
+                desc = p.text.replace( "|", "| ")
+                label = label + " (+" + desc + ")"
             addDirectoryItem( label, { PARAMETER_KEY_STATION: str(id), PARAMETER_KEY_CID: cid, PARAMETER_KEY_CID2: cid2,
                              PARAMETER_KEY_MODE: MODE_PLAY, PARAMETER_KEY_TITLE: title }, img)
 #        print "%3d  %-10s %s (+%s)" % (id, name, show, desc)
