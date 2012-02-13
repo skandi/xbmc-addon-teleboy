@@ -3,7 +3,6 @@ import os, re, sys
 import cookielib, urllib, urllib2
 from cookielib import FileCookieJar
 import xbmcgui, xbmcplugin, xbmcaddon
-#sys.path.append( "/home/andi/workspace/xbmc-plugin-mindmadetools/lib");
 from mindmade import *
 from BeautifulSoup import BeautifulSoup
 
@@ -12,6 +11,8 @@ PLUGINID = "plugin.video.teleboy"
 MODE_PLAY = "play"
 PARAMETER_KEY_MODE = "mode"
 PARAMETER_KEY_STATION = "station"
+PARAMETER_KEY_CID = "cid"
+PARAMETER_KEY_CID2 = "cid2"
 PARAMETER_KEY_TITLE = "title"
 
 URL_BASE = "http://www.teleboy.ch"
@@ -34,11 +35,12 @@ def ensure_cookie():
     log( "logging in...")
     login = settings.getSetting( id="login")
     password = settings.getSetting( id="password")
-    url = URL_BASE + "/layer/rectv/free_live_tv.inc.php"
+    url = URL_BASE + "/login_check"
     args = { "login": login,
              "password": password,
-             "x": "13", "y": "17",
-             "followup": "/tv/player/player.php" }
+             "keep_login": "1",
+             "x": "1", "y": "2",
+             "_target_path": "/tv/player/player.php" }
     
     reply = fetchHttp( url, args);
     
@@ -58,21 +60,16 @@ def getUrl( url, args={}, hdrs={}):
         html = fetchHttp( url, args, hdrs)
         if "Bitte melde dich neu an" in html:
             os.unlink( xbmc.translatePath( COOKIE_FILE));
-            ensure_cookie()
+            if not ensure_cookie():
+                return "";
             html = fetchHttp( url, args, hdrs)
-    return html
-        
+        return html
+    return ""
 
 def get_stationLogo( station):
     return URL_BASE + "/img/station/%d/logo_s_big1.gif" % int(station)
 
-def get_streamparams( station):
-    html = getUrl( "/tv/player/player.php?", { "station_id": station })
-#    print html
-    cid, cid2 = re.compile( "curChannel = '([0-9]*)'.*curDualChannel = '([0-9]*)'").findall( html)[0]
-    if cid2 == "":
-        cid2 = "0"
-    
+def get_streamparams( station, cid, cid2):
     hdrs = { "Referer": URL_BASE + "/tv/player/player.php" } 
     url = "/tv/player/includes/ajax.php"
     args = { "cmd": "getLiveChannelParams",
@@ -130,20 +127,23 @@ def show_main():
     soup = BeautifulSoup( getUrl( "/tv/live_tv.php"))
     
     table = soup.find( "table", "listing")
+    if not table: return
     for tr in table.findAll( "tr"):
-        td = tr.find( "td", attrs={"data-station-id": True})
-        if td:
-            id = int( td["data-station-id"])
-            name = htmldecode( tr.find( "a", "mob24icon-black")["href"].split("/")[3])
-            show = htmldecode( tr.find( "a").text)
+        a = tr.find( "a", "playIcon")
+        if a:
+            id = int( a["data-stationid"])
+            channel = htmldecode( tr.find( "a")["href"].split("/")[3])
+            show = htmldecode( tr.find( "td", "show").find( "a").text)
+            cid, cid2 = tr.find( "a", "playIcon")["data-play-live"].split("/")
             span = tr.find( "span", "show-description")
             desc = None
             if span:
                 desc = span.text[5:]
             img = get_stationLogo( id)
-            title = name + ": " + show
-            if desc: label = title + " (+" + desc + ")"
-            addDirectoryItem( label, { PARAMETER_KEY_STATION: str(id), PARAMETER_KEY_MODE: MODE_PLAY, PARAMETER_KEY_TITLE: title }, img)
+            title = label = channel + ": " + show
+            if desc: label = label + " (+" + desc + ")"
+            addDirectoryItem( label, { PARAMETER_KEY_STATION: str(id), PARAMETER_KEY_CID: cid, PARAMETER_KEY_CID2: cid2,
+                             PARAMETER_KEY_MODE: MODE_PLAY, PARAMETER_KEY_TITLE: title }, img)
 #        print "%3d  %-10s %s (+%s)" % (id, name, show, desc)
     xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=True)
 
@@ -160,7 +160,9 @@ if not sys.argv[2]:
 elif mode == MODE_PLAY:
 
     station = params[PARAMETER_KEY_STATION]
-    url = get_streamparams( station)
+    cid = params[PARAMETER_KEY_CID]
+    cid2 = params[PARAMETER_KEY_CID2]
+    url = get_streamparams( station, cid, cid2)
     img = get_stationLogo( station)
 
     li = xbmcgui.ListItem( params[PARAMETER_KEY_TITLE], iconImage=img, thumbnailImage=img)
