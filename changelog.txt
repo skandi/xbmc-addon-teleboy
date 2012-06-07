@@ -1,3 +1,7 @@
+version 0.2.2
+
+  * reworked authentication and cookie retrieval
+
 version 0.2.1
 
   * reworked html parser for new teleboy webpage format

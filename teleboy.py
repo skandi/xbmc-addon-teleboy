@@ -29,23 +29,30 @@ def ensure_cookie():
     urllib2.install_opener( opener)
     try:
         cookie.revert( ignore_discard=True)
-        return True
+#       log( "cached cookies found!")
+        for c in cookie:
+            if c.name == "cinergy_auth":
+#               log( "auth cookie found!")
+                return True
     except IOError:
         pass
+    cookie.clear()
+    fetchHttp( URL_BASE + "/watchlist")
+    log ( repr( cookie))
     log( "logging in...")
     login = settings.getSetting( id="login")
     password = settings.getSetting( id="password")
-    url = URL_BASE + "/login_check"
+    url = URL_BASE + "/layer/login_check"
     args = { "login": login,
              "password": password,
              "keep_login": "1",
-             "x": "1", "y": "2",
-             "_target_path": "/tv/player/player.php" }
+             "x": "3", "y": "4" }
     
-    reply = fetchHttp( url, args);
+    reply = fetchHttp( url, args, post=True);
     
-    if "Falsche Eingaben" in reply or "Login f&uuml;r Member" in reply:
+    if "Falsche Eingaben" in reply or "Anmeldung war nicht erfolgreich" in reply:
         log( "login failure")
+	log( reply)
         notify( "Login Failure!", "Please set your login/password in the addon settings")
         xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=False)
         return False
@@ -54,15 +61,15 @@ def ensure_cookie():
     return True
         
 
-def getUrl( url, args={}, hdrs={}):
+def getUrl( url, args={}, hdrs={}, post=False):
     url = URL_BASE + url
     if ensure_cookie():
-        html = fetchHttp( url, args, hdrs)
+        html = fetchHttp( url, args, hdrs, post)
         if "Bitte melde dich neu an" in html:
             os.unlink( xbmc.translatePath( COOKIE_FILE));
             if not ensure_cookie():
                 return "";
-            html = fetchHttp( url, args, hdrs)
+            html = fetchHttp( url, args, hdrs, post)
         return html
     return ""
 
@@ -75,8 +82,12 @@ def get_streamparams( station, cid, cid2):
     args = { "cmd": "getLiveChannelParams",
              "cid": cid, "cid2": cid2 }
     
-    ans = getUrl( url, args, hdrs)
-    ch, app, nello, a, b, c, d, e, dummy, version, x11 = ans.split( "|")[0:11] 
+    ans = getUrl( url, args, hdrs, True)
+    try:
+    	ch, app, nello, a, b, c, d, e, dummy, version, x11 = ans.split( "|")[0:11] 
+    except ValueError, e:
+	log( "unparseable answer: %s" % ans)
+	return None
 
     ans = getUrl( "/tv/player/includes/getserver.php",
                   { "version": version, "nocache": "1314619521398" });
@@ -162,6 +173,7 @@ elif mode == MODE_PLAY:
     cid = params[PARAMETER_KEY_CID]
     cid2 = params[PARAMETER_KEY_CID2]
     url = get_streamparams( station, cid, cid2)
+    if not url: exit( 1)
     img = get_stationLogo( station)
 
     li = xbmcgui.ListItem( params[PARAMETER_KEY_TITLE], iconImage=img, thumbnailImage=img)
