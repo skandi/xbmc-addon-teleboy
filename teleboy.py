@@ -78,18 +78,17 @@ def get_stationLogo( station):
 
 def get_streamparams( station, cid, cid2):
     hdrs = { "Referer": URL_BASE + "/tv/player/player.php" } 
-    url = "/tv/player/includes/ajax.php"
-    args = { "cmd": "getLiveChannelParams",
-             "cid": cid, "cid2": cid2 }
+    url = "/tv/player/ajax/liveChannelParams"
+    args = { "cid": cid, "cid2": cid2 }
     
-    ans = getUrl( url, args, hdrs, True)
+    ans = getUrl( url, args, hdrs, False)
     try:
     	ch, app, nello, a, b, c, d, e, dummy, version, x11 = ans.split( "|")[0:11] 
     except ValueError, e:
 	log( "unparseable answer: %s" % ans)
 	return None
 
-    ans = getUrl( "/tv/player/includes/getserver.php",
+    ans = getUrl( "/proxy/player/getserver.php",
                   { "version": version, "nocache": "1314619521398" });
     ip = ans.split("=")[1]
 
