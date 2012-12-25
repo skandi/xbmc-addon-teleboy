@@ -16,7 +16,7 @@ PARAMETER_KEY_CID2 = "cid2"
 PARAMETER_KEY_TITLE = "title"
 
 URL_BASE = "http://www.teleboy.ch"
-PLAYER = URL_BASE + "/tv/player/includes/flash/flashplayer_cinergy_v1_2_2.swf"
+PLAYER = URL_BASE + "/assets/swf/player/flashplayer_cinergy_v1_2_9.swf"
 COOKIE_FILE = xbmc.translatePath( "special://home/addons/" + PLUGINID + "/resources/cookie.dat")
 cookie = cookielib.LWPCookieJar( COOKIE_FILE)
 
