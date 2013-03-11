@@ -136,14 +136,14 @@ def addDirectoryItem( name, params={}, image="", total=0):
 def show_main():
     soup = BeautifulSoup( getUrl( "/tv/live_tv.php"))
     
-    table = soup.find( "table", "listing")
+    table = soup.find( "table", "show-listing")
     if not table: return
     for tr in table.findAll( "tr"):
         a = tr.find( "a", "playIcon")
         if a:
             id = int( a["data-stationid"])
             channel = htmldecode( tr.find( "a")["href"].split("/")[3])
-            show = htmldecode( tr.find( "td", "show").find( "a").text)
+            show = htmldecode( tr.find( "td", "showDetails").find( "a").text)
             cid, cid2 = tr.find( "a", "playIcon")["data-play-live"].split("/")
             img = get_stationLogo( id)
             title = label = channel + ": " + show
