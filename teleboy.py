@@ -16,6 +16,7 @@ PARAMETER_KEY_CID2 = "cid2"
 PARAMETER_KEY_TITLE = "title"
 
 URL_BASE = "http://www.teleboy.ch"
+URL_BASE_MEDIA = "http://media.cinergy.ch"
 PLAYER = URL_BASE + "/assets/swf/player/flashplayer_cinergy_v1_2_9.swf"
 COOKIE_FILE = xbmc.translatePath( "special://home/addons/" + PLUGINID + "/resources/cookie.dat")
 cookie = cookielib.LWPCookieJar( COOKIE_FILE)
@@ -74,7 +75,7 @@ def getUrl( url, args={}, hdrs={}, post=False):
     return ""
 
 def get_stationLogo( station):
-    return URL_BASE + "/img/station/%d/logo_s_big1.gif" % int(station)
+    return URL_BASE_MEDIA + "/t_station/%d/logo_s_big1.gif" % int(station)
 
 def get_streamparams( station, cid, cid2):
     hdrs = { "Referer": URL_BASE + "/tv/player/player.php" } 
