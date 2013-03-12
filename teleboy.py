@@ -142,7 +142,7 @@ def show_main():
         a = tr.find( "a", "playIcon")
         if a:
             id = int( a["data-stationid"])
-            channel = htmldecode( tr.find( "a")["href"].split("/")[3])
+            channel = htmldecode( tr.find( "td", "station").find( "img")["alt"] )
             show = htmldecode( tr.find( "td", "showDetails").find( "a").text)
             cid, cid2 = tr.find( "a", "playIcon")["data-play-live"].split("/")
             img = get_stationLogo( id)
