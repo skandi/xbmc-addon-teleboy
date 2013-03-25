@@ -6,6 +6,15 @@ import xbmcgui, xbmcplugin, xbmcaddon
 from mindmade import *
 from BeautifulSoup import BeautifulSoup
 
+__author__     = "Andreas Wetzel"
+__copyright__  = "Copyright 2011-2013, mindmade.org"
+__credits__    = [ "Francois Marbot" ]
+__maintainer__ = "Andreas Wetzel"
+__email__      = "xbmc@mindmade.org"
+
+#
+# constants definition
+############################################
 PLUGINID = "plugin.video.teleboy"
 
 MODE_PLAY = "play"
@@ -157,11 +166,14 @@ def show_main():
 #        print "%3d  %-10s %s (+%s)" % (id, name, show, desc)
     xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=True)
 
-
+#
+# xbmc entry point
+############################################
+sayHi()
+    
 params = parameters_string_to_dict(sys.argv[2])
 mode = params.get(PARAMETER_KEY_MODE, "0")
-#    sys.exit()
-    
+
 # depending on the mode, call the appropriate function to build the UI.
 if not sys.argv[2]:
     # new start
