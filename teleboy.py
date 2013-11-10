@@ -4,6 +4,7 @@ import cookielib, urllib, urllib2
 from cookielib import FileCookieJar
 import xbmcgui, xbmcplugin, xbmcaddon
 from mindmade import *
+import simplejson
 from BeautifulSoup import BeautifulSoup
 
 __author__     = "Andreas Wetzel"
@@ -26,7 +27,7 @@ PARAMETER_KEY_TITLE = "title"
 
 URL_BASE = "http://www.teleboy.ch"
 URL_BASE_MEDIA = "http://media.cinergy.ch"
-PLAYER = URL_BASE + "/assets/swf/player/flashplayer_cinergy_v1_2_9.swf"
+PLAYER = URL_BASE + "/assets/swf/flowplayer_ova/flowplayer.commercial-3.2.16.swf"
 COOKIE_FILE = xbmc.translatePath( "special://home/addons/" + PLUGINID + "/resources/cookie.dat")
 cookie = cookielib.LWPCookieJar( COOKIE_FILE)
 
@@ -62,7 +63,7 @@ def ensure_cookie():
     
     if "Falsche Eingaben" in reply or "Anmeldung war nicht erfolgreich" in reply:
         log( "login failure")
-	log( reply)
+        log( reply)
         notify( "Login Failure!", "Please set your login/password in the addon settings")
         xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=False)
         return False
@@ -90,24 +91,15 @@ def get_streamparams( station, cid, cid2):
     hdrs = { "Referer": URL_BASE + "/tv/player/player.php" } 
     url = "/tv/player/ajax/liveChannelParams"
     args = { "cid": cid, "cid2": cid2 }
-    
+
     ans = getUrl( url, args, hdrs, False)
-    try:
-    	ch, app, nello, a, b, c, d, e, dummy, version, x11 = ans.split( "|")[0:11] 
-    except ValueError, e:
-	log( "unparseable answer: %s" % ans)
-	return None
+    json = simplejson.loads( ans)
+    drm = json["params"]["drm"]
+    params = drm.split('|');
 
-    ans = getUrl( "/proxy/player/getserver.php",
-                  { "version": version, "nocache": "1314619521398" });
-    ip = ans.split("=")[1]
-
-    link = "rtmp://%s/%s" % (ip, x11)
-    playpath = "%s%s.stream" % (cid, b)
-    url = "%s playpath=%s swfurl=%s swfvfy=true live=true" % (link, playpath, PLAYER)
-    for i in a,b,c,d,e:
-        url = url + " conn=S:" + i
-    return url
+    link = params[1]
+    playpath = params[0]
+    return "%s playpath=%s swfurl=%s swfvfy=true live=true" % (link, playpath, PLAYER)
 
 ############
 # TEMP
