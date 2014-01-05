@@ -143,18 +143,26 @@ def show_main():
     for tr in table.findAll( "tr"):
         a = tr.find( "a", "playIcon")
         if a:
-            id = int( a["data-stationid"])
-            channel = htmldecode( tr.find( "td", "station").find( "img")["alt"] )
-            show = htmldecode( tr.find( "td", "showDetails").find( "a").text)
-            cid, cid2 = tr.find( "a", "playIcon")["data-play-live"].split("/")
-            img = get_stationLogo( id)
-            title = label = channel + ": " + show
-            p = tr.find( "p", "listing_info");
-            if p:
-                desc = p.text.replace( "|", "| ")
-                label = label + " (+" + desc + ")"
-            addDirectoryItem( label, { PARAMETER_KEY_STATION: str(id), PARAMETER_KEY_CID: cid, PARAMETER_KEY_CID2: cid2,
-                             PARAMETER_KEY_MODE: MODE_PLAY, PARAMETER_KEY_TITLE: title }, img)
+            try:
+                id = int( a["data-stationid"])
+                channel = htmldecode( tr.find( "td", "station").find( "img")["alt"])
+                details = tr.find( "td", "showDetails")
+                if (details.find( "a")):
+                    show = htmldecode( details.find( "a")["title"])
+                else:
+                    show = details.text
+                cid, cid2 = tr.find( "a", "playIcon")["data-play-live"].split("/")
+                img = get_stationLogo( id)
+                title = label = channel + ": " + show
+                p = tr.find( "p", "listing_info");
+                if p:
+                    desc = p.text.replace( "|", "| ")
+                    label = label + " (+" + desc + ")"
+                addDirectoryItem( label, { PARAMETER_KEY_STATION: str(id), PARAMETER_KEY_CID: cid, PARAMETER_KEY_CID2: cid2,
+                                 PARAMETER_KEY_MODE: MODE_PLAY, PARAMETER_KEY_TITLE: title }, img)
+            except Exception as e:
+                log( "Exception: " + str(e))
+                log( "HTML(show): " + str( tr))
 #        print "%3d  %-10s %s (+%s)" % (id, name, show, desc)
     xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=True)
 

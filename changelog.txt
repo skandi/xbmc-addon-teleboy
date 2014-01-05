@@ -1,3 +1,7 @@
+version 0.2.5
+
+  * skip unparseable channel entries in main channel list
+
 version 0.2.4
 
   * applied patch from francois (again ;) to work with new teleboy homepage
