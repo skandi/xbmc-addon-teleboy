@@ -1,3 +1,8 @@
+version 0.2.6
+
+  * adapted to new website layout.
+    (patch by stunna, thank you!)
+
 version 0.2.5
 
   * skip unparseable channel entries in main channel list
@@ -9,7 +14,7 @@ version 0.2.4
 
 version 0.2.3
 
-  * adapted html parsing to new srf website
+  * adapted html parsing to new teleboy website
     (patch by francois marbot, thank you!)
   * minor improvements & anonymous (check source!) usage statistics
 
