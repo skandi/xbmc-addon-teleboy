@@ -1,3 +1,9 @@
+
+version 0.3.0
+
+  * adapt to new http streaming, based on watchteleboy script from reduzent. thank you!
+    (https://github.com/reduzent/watchteleboy)
+
 version 0.2.6
 
   * adapted to new website layout.
