@@ -1,15 +1,14 @@
 
-import os, re, sys
+import os, re, sys, base64
 import cookielib, urllib, urllib2
-from cookielib import FileCookieJar
 import xbmcgui, xbmcplugin, xbmcaddon
 from mindmade import *
 import simplejson
 from BeautifulSoup import BeautifulSoup
 
 __author__     = "Andreas Wetzel"
-__copyright__  = "Copyright 2011-2013, mindmade.org"
-__credits__    = [ "Francois Marbot" ]
+__copyright__  = "Copyright 2011-2015, mindmade.org"
+__credits__    = [ "Roman Haefeli", "Francois Marbot" ]
 __maintainer__ = "Andreas Wetzel"
 __email__      = "xbmc@mindmade.org"
 
@@ -21,43 +20,41 @@ PLUGINID = "plugin.video.teleboy"
 MODE_PLAY = "play"
 PARAMETER_KEY_MODE = "mode"
 PARAMETER_KEY_STATION = "station"
-PARAMETER_KEY_CID = "cid"
-PARAMETER_KEY_CID2 = "cid2"
-PARAMETER_KEY_TITLE = "title"
+PARAMETER_KEY_USERID = "userid"
 
-URL_BASE = "http://www.teleboy.ch"
-URL_BASE_MEDIA = "http://media.cinergy.ch"
-PLAYER = URL_BASE + "/assets/swf/flowplayer_ova/flowplayer.commercial-3.2.16.swf"
+TB_URL = "http://www.teleboy.ch"
+IMG_URL = "http://media.cinergy.ch"
+API_URL = "http://tv.api.teleboy.ch"
+API_KEY = base64.b64decode( "ZjBlN2JkZmI4MjJmYTg4YzBjN2ExM2Y3NTJhN2U4ZDVjMzc1N2ExM2Y3NTdhMTNmOWMwYzdhMTNmN2RmYjgyMg==")
 COOKIE_FILE = xbmc.translatePath( "special://home/addons/" + PLUGINID + "/resources/cookie.dat")
-cookie = cookielib.LWPCookieJar( COOKIE_FILE)
+
 
 pluginhandle = int(sys.argv[1])
 settings = xbmcaddon.Addon( id=PLUGINID)
+cookies = cookielib.LWPCookieJar( COOKIE_FILE)
 
-def ensure_cookie():
-    global cookie
-    opener = urllib2.build_opener( urllib2.HTTPCookieProcessor(cookie))
+def ensure_login():
+    global cookies
+    opener = urllib2.build_opener( urllib2.HTTPCookieProcessor(cookies))
     urllib2.install_opener( opener)
     try:
-        cookie.revert( ignore_discard=True)
-#       log( "cached cookies found!")
-        for c in cookie:
-            if c.name == "cinergy_auth":
-#               log( "auth cookie found!")
+        cookies.revert( ignore_discard=True)
+        for c in cookies:
+            if c.name == "cinergy_s":
                 return True
     except IOError:
         pass
-    cookie.clear()
-    fetchHttp( URL_BASE + "/watchlist")
-    log ( repr( cookie))
+    cookies.clear()
+    fetchHttp( TB_URL + "/watchlist")
+
     log( "logging in...")
     login = settings.getSetting( id="login")
     password = settings.getSetting( id="password")
-    url = URL_BASE + "/layer/login_check"
+    url = TB_URL + "/layer/login_check"
     args = { "login": login,
              "password": password,
              "keep_login": "1",
-             "x": "3", "y": "4" }
+             "x": "14", "y": "7" }
 
     reply = fetchHttp( url, args, post=True);
 
@@ -67,38 +64,44 @@ def ensure_cookie():
         notify( "Login Failure!", "Please set your login/password in the addon settings")
         xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=False)
         return False
-    res = cookie.save( ignore_discard=True)
+    res = cookies.save( ignore_discard=True)
+
     log( "login ok")
     return True
 
-def getUrl( url, args={}, hdrs={}, post=False):
-    url = URL_BASE + url
-    if ensure_cookie():
+def fetchHttpWithCookies( url, args={}, hdrs={}, post=False):
+    if ensure_login():
         html = fetchHttp( url, args, hdrs, post)
         if "Bitte melde dich neu an" in html:
             os.unlink( xbmc.translatePath( COOKIE_FILE));
-            if not ensure_cookie():
+            if not ensure_login():
                 return "";
             html = fetchHttp( url, args, hdrs, post)
         return html
     return ""
 
-def get_stationLogo( station):
-    return URL_BASE_MEDIA + "/t_station/%d/logo_s_big1.gif" % int(station)
+def get_stationLogoURL( station):
+    return IMG_URL + "/t_station/%d/logo_s_big1.gif" % int(station)
 
-def get_streamparams( station, cid, cid2):
-    hdrs = { "Referer": URL_BASE + "/tv/player/player.php" }
-    url = "/tv/player/ajax/liveChannelParams"
-    args = { "cid": cid, "cid2": cid2 }
+def get_videoJson( sid, user_id):
+    # get session key from cookie
+    global cookies
+    cookies.revert( ignore_discard=True)
+    session_cookie = ""
+    for c in cookies:
+        if c.name == "cinergy_s":
+            session_cookie = c.value
+            break
 
-    ans = getUrl( url, args, hdrs, False)
-    json = simplejson.loads( ans)
-    drm = json["params"]["drm"]
-    params = drm.split('|');
+    if (session_cookie == ""):
+        notify( "Session cookie not found!", "Please set your login/password in the addon settings")
+        return False
 
-    link = params[1]
-    playpath = params[0]
-    return "%s playpath=%s swfurl=%s swfvfy=true live=true" % (link, playpath, PLAYER)
+    url = API_URL + "/users/%s/stream/live/%s" % (user_id, sid)
+    hdrs = { "x-teleboy-apikey": API_KEY,
+             "x-teleboy-session": session_cookie }
+    ans = fetchHttpWithCookies( url, { "alternative": "false" }, hdrs)
+    return simplejson.loads( ans)
 
 ############
 # TEMP
@@ -135,7 +138,18 @@ def addDirectoryItem( name, params={}, image="", total=0):
 ###########
 
 def show_main():
-    soup = BeautifulSoup( getUrl( "/tv/live_tv.php"))
+    content = fetchHttpWithCookies( TB_URL + "/tv/live_tv.php")
+    soup = BeautifulSoup( content)
+
+    # extract user id
+    user_id = ""
+    lines = content.split( '\n')
+    for line in lines:
+        if "id: " in line:
+            dummy, uid = line.split( ": ")
+            user_id = uid[:-1]
+            log( "user id: " + user_id)
+            break;
 
     table = soup.find( "table", "show-listing")
 
@@ -151,19 +165,22 @@ def show_main():
                     show = htmldecode( details.find( "a")["title"])
                 else:
                     show = details.text
-                cid, cid2 = tr.find( "a", "playIcon")["data-play-live"].split("/")
-                img = get_stationLogo( id)
-                title = label = channel + ": " + show
+
+                img = get_stationLogoURL( id)
+                label = channel + ": " + show
                 p = tr.find( "p", "listing-info");
                 if p:
-                    desc = p.text.replace( "|", "| ")
-                    label = label + " (+" + desc + ")"
-                addDirectoryItem( label, { PARAMETER_KEY_STATION: str(id), PARAMETER_KEY_CID: cid, PARAMETER_KEY_CID2: cid2,
-                                 PARAMETER_KEY_MODE: MODE_PLAY, PARAMETER_KEY_TITLE: title }, img)
+                    desc = p.text
+                    log( desc)
+                    if desc.endswith( "&nbsp;|&nbsp;"): desc = desc[:-13]
+                    label = label + " (" + desc + ")"
+                addDirectoryItem( label, { PARAMETER_KEY_STATION: str(id), 
+                                           PARAMETER_KEY_MODE: MODE_PLAY, 
+                                           PARAMETER_KEY_USERID: user_id }, img)
             except Exception as e:
                 log( "Exception: " + str(e))
                 log( "HTML(show): " + str( tr))
-       #print "%3d  %-10s %s (+%s)" % (id, name, show, desc)
+
     xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=True)
 
 #
@@ -180,15 +197,19 @@ if not sys.argv[2]:
     ok = show_main()
 
 elif mode == MODE_PLAY:
-
     station = params[PARAMETER_KEY_STATION]
-    cid = params[PARAMETER_KEY_CID]
-    cid2 = params[PARAMETER_KEY_CID2]
-    url = get_streamparams( station, cid, cid2)
-    if not url: exit( 1)
-    img = get_stationLogo( station)
+    user_id = params[PARAMETER_KEY_USERID]
+    json = get_videoJson( station, user_id)
+    if not json:
+        exit( 1)
 
-    li = xbmcgui.ListItem( params[PARAMETER_KEY_TITLE], iconImage=img, thumbnailImage=img)
+    title = json["data"]["epg"]["current"]["title"]        
+    url = json["data"]["stream"]["url"]
+
+    if not url: exit( 1)
+    img = get_stationLogoURL( station)
+
+    li = xbmcgui.ListItem( title, iconImage=img, thumbnailImage=img)
     li.setProperty( "IsPlayable", "true")
     li.setProperty( "Video", "true")
 
