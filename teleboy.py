@@ -50,7 +50,7 @@ def ensure_login():
     log( "logging in...")
     login = settings.getSetting( id="login")
     password = settings.getSetting( id="password")
-    url = TB_URL + "/layer/login_check"
+    url = TB_URL + "/login_check"
     args = { "login": login,
              "password": password,
              "keep_login": "1",

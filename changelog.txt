@@ -1,4 +1,8 @@
 
+version 0.3.1
+
+  * quick fix for login issue, patch provided by primaeval. thank you!
+
 version 0.3.0
 
   * adapt to new http streaming, based on watchteleboy script from reduzent. thank you!
