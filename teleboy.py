@@ -4,7 +4,6 @@ import cookielib, urllib, urllib2
 import xbmcgui, xbmcplugin, xbmcaddon
 from mindmade import *
 import simplejson
-from BeautifulSoup import BeautifulSoup
 
 __author__     = "Andreas Wetzel"
 __copyright__  = "Copyright 2011-2015, mindmade.org"
@@ -17,10 +16,13 @@ __email__      = "xbmc@mindmade.org"
 ############################################
 PLUGINID = "plugin.video.teleboy"
 
+MODE_RECORDINGS = "recordings"
 MODE_PLAY = "play"
+MODE_PLAY_RECORDING = "playrec"
 PARAMETER_KEY_MODE = "mode"
 PARAMETER_KEY_STATION = "station"
 PARAMETER_KEY_USERID = "userid"
+PARAMETER_KEY_RECID  = "recid"
 
 TB_URL = "http://www.teleboy.ch"
 IMG_URL = "http://media.cinergy.ch"
@@ -53,8 +55,7 @@ def ensure_login():
     url = TB_URL + "/login_check"
     args = { "login": login,
              "password": password,
-             "keep_login": "1",
-             "x": "14", "y": "7" }
+             "keep_login": "1" }
 
     reply = fetchHttp( url, args, post=True);
 
@@ -81,9 +82,9 @@ def fetchHttpWithCookies( url, args={}, hdrs={}, post=False):
     return ""
 
 def get_stationLogoURL( station):
-    return IMG_URL + "/t_station/%d/logo_s_big1.gif" % int(station)
+    return IMG_URL + "/t_station/" + station + "/icon320_dark.png"
 
-def get_videoJson( sid, user_id):
+def fetchApiJson( user_id, url, args={}):
     # get session key from cookie
     global cookies
     cookies.revert( ignore_discard=True)
@@ -97,11 +98,15 @@ def get_videoJson( sid, user_id):
         notify( "Session cookie not found!", "Please set your login/password in the addon settings")
         return False
 
-    url = API_URL + "/users/%s/stream/live/%s" % (user_id, sid)
     hdrs = { "x-teleboy-apikey": API_KEY,
              "x-teleboy-session": session_cookie }
-    ans = fetchHttpWithCookies( url, { "alternative": "false" }, hdrs)
+    url = API_URL + "/users/%s/" % user_id + url
+    ans = fetchHttpWithCookies( url, args, hdrs)
     return simplejson.loads( ans)
+
+def get_videoJson( user_id, sid):
+    url = "stream/live/%s" % sid
+    return fetchApiJson( user_id, url, {"alternative": "false"})
 
 ############
 # TEMP
@@ -117,7 +122,7 @@ def parameters_string_to_dict( parameters):
                 paramDict[paramSplits[0]] = urllib.unquote( paramSplits[1])
     return paramDict
 
-def addDirectoryItem( name, params={}, image="", total=0):
+def addDirectoryItem( name, params={}, image="", total=0, isFolder=False):
     '''Add a list item to the XBMC UI.'''
     img = "DefaultVideo.png"
     if image != "": img = image
@@ -125,25 +130,24 @@ def addDirectoryItem( name, params={}, image="", total=0):
     name = htmldecode( name)
     li = xbmcgui.ListItem( name, iconImage=img, thumbnailImage=image)
 
-    li.setProperty( "Video", "true")
+    if not isFolder:
+	    li.setProperty( "Video", "true")
 
     params_encoded = dict()
     for k in params.keys():
         params_encoded[k] = params[k].encode( "utf-8")
     url = sys.argv[0] + '?' + urllib.urlencode( params_encoded)
-
-    return xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=url, listitem=li, isFolder = False, totalItems=total)
+    return xbmcplugin.addDirectoryItem(handle=pluginhandle, url=url, listitem=li, isFolder = isFolder, totalItems=total)
 ###########
 # END TEMP
 ###########
 
 def show_main():
-    content = fetchHttpWithCookies( TB_URL + "/tv/live_tv.php")
-    soup = BeautifulSoup( content)
+    html = fetchHttpWithCookies( TB_URL + "/tv/live_tv.php")
 
     # extract user id
     user_id = ""
-    lines = content.split( '\n')
+    lines = html.split( '\n')
     for line in lines:
         if "id: " in line:
             dummy, uid = line.split( ": ")
@@ -151,37 +155,47 @@ def show_main():
             log( "user id: " + user_id)
             break;
 
-    table = soup.find( "table", "show-listing")
+    addDirectoryItem( "[ Recordings ]", { PARAMETER_KEY_MODE: MODE_RECORDINGS,
+                                      PARAMETER_KEY_USERID: user_id},
+                                      isFolder = True)
 
-    if not table: return
-    for tr in table.findAll( "tr"):
-        a = tr.find( "a", "playIcon")
-        if a:
-            try:
-                id = int( a["data-stationid"])
-                channel = htmldecode( tr.find( "td", "station").find( "img")["alt"])
-                details = tr.find( "td", "show-details")
-                if (details.find( "a")):
-                    show = htmldecode( details.find( "a")["title"])
-                else:
-                    show = details.text
+    content = fetchApiJson( user_id, "broadcasts/now", { "expand": "flags,station,previewImage", "stream": True })
+    print( repr(content))
+    for item in content["data"]["items"]:
+        channel = item["station"]["name"]
+        station_id = str(item["station"]["id"])
+        title   = item["title"]
+        tstart  = item["begin"][11:16]
+        tend    = item["end"][11:16]
+        label   = channel + ": " + title + " (" + tstart + "-" + tend +")"
+        img     = get_stationLogoURL( station_id)
+        addDirectoryItem( label, { PARAMETER_KEY_STATION: station_id, 
+                          PARAMETER_KEY_MODE: MODE_PLAY, 
+                          PARAMETER_KEY_USERID: user_id }, img)
+    xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=True)
 
-                img = get_stationLogoURL( id)
-                label = channel + ": " + show
-                p = tr.find( "p", "listing-info");
-                if p:
-                    desc = p.text
-                    log( desc)
-                    if desc.endswith( "&nbsp;|&nbsp;"): desc = desc[:-13]
-                    label = label + " (" + desc + ")"
-                addDirectoryItem( label, { PARAMETER_KEY_STATION: str(id), 
-                                           PARAMETER_KEY_MODE: MODE_PLAY, 
-                                           PARAMETER_KEY_USERID: user_id }, img)
-            except Exception as e:
-                log( "Exception: " + str(e))
-                log( "HTML(show): " + str( tr))
+
+def show_recordings( user_id):
+    content = fetchApiJson( user_id, "records/ready", { "limit": 500, "skip": 0})
+
+    for item in content["data"]["items"]:
+    	starttime = item["begin"].split("+")[0][:-3].replace( "T", " ")
+    	label = starttime + " " + item["label"] + ": " + item["title"]
+    	recid = str(item["id"])
+    	addDirectoryItem( label, { PARAMETER_KEY_MODE: MODE_PLAY_RECORDING,
+    							   PARAMETER_KEY_USERID: user_id,
+    		                       PARAMETER_KEY_RECID: recid })
 
     xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=True)
+
+
+def play_url( url, title, img=""):
+    li = xbmcgui.ListItem( title, iconImage=img, thumbnailImage=img)
+    li.setProperty( "IsPlayable", "true")
+    li.setProperty( "Video", "true")
+
+    xbmc.Player().play( url, li)
+
 
 #
 # xbmc entry point
@@ -196,21 +210,33 @@ if not sys.argv[2]:
     # new start
     ok = show_main()
 
-elif mode == MODE_PLAY:
-    station = params[PARAMETER_KEY_STATION]
+elif mode == MODE_RECORDINGS:
     user_id = params[PARAMETER_KEY_USERID]
-    json = get_videoJson( station, user_id)
+    show_recordings( user_id)
+
+elif mode == MODE_PLAY:
+    user_id = params[PARAMETER_KEY_USERID]
+    station = params[PARAMETER_KEY_STATION]
+    json = get_videoJson( user_id, station)
     if not json:
         exit( 1)
 
-    title = json["data"]["epg"]["current"]["title"]        
+    title = json["data"]["epg"]["current"]["title"]
     url = json["data"]["stream"]["url"]
 
     if not url: exit( 1)
     img = get_stationLogoURL( station)
 
-    li = xbmcgui.ListItem( title, iconImage=img, thumbnailImage=img)
-    li.setProperty( "IsPlayable", "true")
-    li.setProperty( "Video", "true")
+    play_url( url, title, img)
 
-    xbmc.Player().play( url, li)
+elif mode == MODE_PLAY_RECORDING:
+    user_id = params[PARAMETER_KEY_USERID]
+    rec_id  = params[PARAMETER_KEY_RECID]
+
+    url = "stream/record/%s" % rec_id
+    json    = fetchApiJson( user_id, url)
+
+    title = json["data"]["record"]["title"]
+    url   = json["data"]["stream"]["url"]
+
+    play_url( url, title)

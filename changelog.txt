@@ -1,4 +1,7 @@
 
+version 0.3.2
+  * use new teleboy json api - as seen in reduzents (who else ;) watchteleboy script
+
 version 0.3.1
 
   * quick fix for login issue, patch provided by primaeval. thank you!
