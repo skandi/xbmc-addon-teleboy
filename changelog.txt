@@ -1,3 +1,5 @@
+version 0.3.3
+  * do not crash when listing recordings without a "label" property
 
 version 0.3.2
   * use new teleboy json api - as seen in reduzents (who else ;) watchteleboy script

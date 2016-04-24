@@ -180,7 +180,9 @@ def show_recordings( user_id):
 
     for item in content["data"]["items"]:
     	starttime = item["begin"].split("+")[0][:-3].replace( "T", " ")
-    	label = starttime + " " + item["label"] + ": " + item["title"]
+    	label = starttime + " " + item["title"]
+    	if "label" in item.keys():
+    		label = starttime + " " + item["label"] + ": " + item["title"]
     	recid = str(item["id"])
     	addDirectoryItem( label, { PARAMETER_KEY_MODE: MODE_PLAY_RECORDING,
     							   PARAMETER_KEY_USERID: user_id,
