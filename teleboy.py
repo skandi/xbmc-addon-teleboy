@@ -143,7 +143,7 @@ def addDirectoryItem( name, params={}, image="", total=0, isFolder=False):
 ###########
 
 def show_main():
-    html = fetchHttpWithCookies( TB_URL + "/tv/live_tv.php")
+    html = fetchHttpWithCookies( TB_URL + "/live")
 
     # extract user id
     user_id = ""
