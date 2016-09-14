@@ -1,3 +1,6 @@
+version 0.3.4
+  * applied quick fix for channel overview. patch provided by os299. thank you!
+
 version 0.3.3
   * do not crash when listing recordings without a "label" property
 
