@@ -1,3 +1,6 @@
+version 0.3.5
+  * quick fix for login issue.
+
 version 0.3.4
   * applied quick fix for channel overview. patch provided by os299. thank you!
 
