@@ -47,7 +47,7 @@ def ensure_login():
     except IOError:
         pass
     cookies.clear()
-    fetchHttp( TB_URL + "/watchlist")
+    fetchHttp( TB_URL + "/login")
 
     log( "logging in...")
     login = settings.getSetting( id="login")
@@ -169,8 +169,8 @@ def show_main():
         tend    = item["end"][11:16]
         label   = channel + ": " + title + " (" + tstart + "-" + tend +")"
         img     = get_stationLogoURL( station_id)
-        addDirectoryItem( label, { PARAMETER_KEY_STATION: station_id, 
-                          PARAMETER_KEY_MODE: MODE_PLAY, 
+        addDirectoryItem( label, { PARAMETER_KEY_STATION: station_id,
+                          PARAMETER_KEY_MODE: MODE_PLAY,
                           PARAMETER_KEY_USERID: user_id }, img)
     xbmcplugin.endOfDirectory( handle=pluginhandle, succeeded=True)
 
