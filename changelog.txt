@@ -1,3 +1,6 @@
+version 0.3.6
+  * another fix for login and authentication. patch from weismw. thank you!
+
 version 0.3.5
   * quick fix for login issue.
 

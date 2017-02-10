@@ -24,7 +24,7 @@ PARAMETER_KEY_STATION = "station"
 PARAMETER_KEY_USERID = "userid"
 PARAMETER_KEY_RECID  = "recid"
 
-TB_URL = "http://www.teleboy.ch"
+TB_URL = "https://www.teleboy.ch"
 IMG_URL = "http://media.cinergy.ch"
 API_URL = "http://tv.api.teleboy.ch"
 API_KEY = base64.b64decode( "ZjBlN2JkZmI4MjJmYTg4YzBjN2ExM2Y3NTJhN2U4ZDVjMzc1N2ExM2Y3NTdhMTNmOWMwYzdhMTNmN2RmYjgyMg==")
@@ -42,7 +42,7 @@ def ensure_login():
     try:
         cookies.revert( ignore_discard=True)
         for c in cookies:
-            if c.name == "cinergy_s":
+            if c.name == "cinergy_auth":
                 return True
     except IOError:
         pass
